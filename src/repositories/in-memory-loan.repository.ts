@@ -1,14 +1,16 @@
 import { ICreateLoanDTO } from '../dtos/loan.dto';
 import { Loan, LoanFilters, LoanRepository, LoanStatus } from './loan.repository';
 
+// Adaptador de la Sesión 4. Se conserva para practicar sin base de datos:
+// basta con usarlo en src/container.ts en lugar de PrismaLoanRepository.
 export class InMemoryLoanRepository implements LoanRepository {
-  private readonly loans = new Map<number, Loan>();
+  private readonly loans = new Map<string, Loan>();
   private nextId = 1;
 
   public async create(input: ICreateLoanDTO): Promise<Loan> {
     const loan: Loan = {
       ...input,
-      id: this.nextId++,
+      id: String(this.nextId++),
       estado: 'PENDIENTE_APROBACION',
       createdAt: new Date().toISOString(),
       acceptedAt: null
@@ -27,13 +29,13 @@ export class InMemoryLoanRepository implements LoanRepository {
       .map((loan) => ({ ...loan }));
   }
 
-  public async findById(id: number): Promise<Loan | null> {
+  public async findById(id: string): Promise<Loan | null> {
     const loan = this.loans.get(id);
     return loan ? { ...loan } : null;
   }
 
   public async updateStatus(
-    id: number,
+    id: string,
     expectedStatus: LoanStatus,
     status: LoanStatus
   ): Promise<Loan | null> {

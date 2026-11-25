@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { loanService } from '../container';
-import { DomainError } from '../errors/domain.error';
 import { ICreateLoanDTO } from '../dtos/loan.dto';
 
+// Express 5 envía al globalErrorHandler cualquier rechazo de un handler async.
 export class LoanController {
   public static createLoan = async (
     req: Request<Record<string, string>, unknown, ICreateLoanDTO>,
@@ -13,17 +13,11 @@ export class LoanController {
   };
 
   public static getLoansByFilter = async (
-    req: Request,
+    req: Request<Record<string, string>, unknown, unknown, { roomId?: string }>,
     res: Response
   ): Promise<void> => {
+    // validateLoanSearchQuery ya garantizó que roomId es un UUID o no viene.
     const { roomId } = req.query;
-    if (roomId !== undefined && typeof roomId !== 'string') {
-      throw new DomainError(
-        'VALIDATION_ERROR',
-        'El filtro roomId debe ser un texto.'
-      );
-    }
-
     const loans = await loanService.getLoans({ roomId });
     res.status(200).json({ success: true, data: loans });
   };
@@ -32,7 +26,7 @@ export class LoanController {
     req: Request<{ id: string }>,
     res: Response
   ): Promise<void> => {
-    const loan = await loanService.getLoanDetail(Number(req.params.id));
+    const loan = await loanService.getLoanDetail(req.params.id);
     res.status(200).json({ success: true, data: loan });
   };
 
@@ -40,7 +34,7 @@ export class LoanController {
     req: Request<{ id: string }>,
     res: Response
   ): Promise<void> => {
-    const loan = await loanService.acceptLoan(Number(req.params.id));
+    const loan = await loanService.acceptLoan(req.params.id);
     res.status(200).json({ success: true, data: loan });
   };
 }

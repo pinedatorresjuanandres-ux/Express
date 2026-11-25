@@ -6,6 +6,10 @@ import {
   LoanRepository
 } from '../repositories/loan.repository';
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_BIGINT = 9223372036854775807n;
+
 export class LoanService {
   constructor(private readonly loanRepository: LoanRepository) {}
 
@@ -26,7 +30,7 @@ export class LoanService {
   }
 
   public async getLoans(filters: LoanFilters = {}): Promise<Loan[]> {
-    if (filters.roomId !== undefined && !this.isUuid(filters.roomId)) {
+    if (filters.roomId !== undefined && !UUID_PATTERN.test(filters.roomId)) {
       throw new DomainError(
         'VALIDATION_ERROR',
         'El filtro roomId debe ser un UUID válido.'
@@ -37,7 +41,7 @@ export class LoanService {
     });
   }
 
-  public async getLoanDetail(id: number): Promise<Loan> {
+  public async getLoanDetail(id: string): Promise<Loan> {
     this.validateId(id);
     const loan = await this.loanRepository.findById(id);
     if (!loan) {
@@ -49,7 +53,7 @@ export class LoanService {
     return loan;
   }
 
-  public async acceptLoan(id: number): Promise<Loan> {
+  public async acceptLoan(id: string): Promise<Loan> {
     this.validateId(id);
     const updatedLoan = await this.loanRepository.updateStatus(
       id,
@@ -73,16 +77,13 @@ export class LoanService {
     );
   }
 
-  private validateId(id: number): void {
-    if (!Number.isInteger(id) || id <= 0) {
+  // Entero positivo dentro del rango de BIGINT de PostgreSQL.
+  private validateId(id: string): void {
+    if (!/^[1-9]\d{0,18}$/.test(id) || BigInt(id) > MAX_BIGINT) {
       throw new DomainError(
         'VALIDATION_ERROR',
         'El identificador del préstamo debe ser un entero positivo.'
       );
     }
-  }
-
-  private isUuid(value: string): boolean {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
   }
 }
